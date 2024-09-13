@@ -15,7 +15,6 @@ import Adafruit_MCP4725
 import adafruit_ads1x15.ads1115 as ADS
 from adafruit_ads1x15.analog_in import AnalogIn
 
-
 #Inicializar variables
 os.system('modprobe w1-gpio')
 os.system('modprobe w1-therm')
@@ -48,19 +47,23 @@ def get_temperature(device_folder):
 
 def sensor_temperatura(device_folder):
     # Diccionario para guardar listas de temperatura
-    temperature_lists = {}
+    # temperature_lists = {}
+    current_temperatures=()
 
-    for i, device in enumerate(device_folder, start=1):
+
+
+    for device in (device_folder):
         temperature = get_temperature(device)
+        current_temperatures.append(temperature)
         #print(f"Temperature of sensor {i}: {temperature:.2f} C")
-        
+        """
         # Crear una nueva lista para cada sensor si no existe
         if i not in temperature_lists:
             temperature_lists[i] = []
-        
+        """
         # Guardar el valor del sensor
-        temperature_lists[i].append(round(temperature,2))
-    return temperature_lists
+        #temperature_lists[i].append(round(temperature,2))
+    return current_temperatures
 
 # Temperatura deseada
 setpoint_temp = 22 # in degrees Celsius
@@ -80,7 +83,7 @@ ads2 = ADS.ADS1115(i2c, address=0x49)
 
 ads2.gain = 1
 V_posicion_valvula = AnalogIn(ads2, ADS.P0)
-#V_rpm = AnalogIn(ads2, ADS.P1)
+V_rpm = AnalogIn(ads2, ADS.P1)
 
 #Feedback válvula
 V_control_valvula = Adafruit_MCP4725.MCP4725(address=0x60, busnum=1)
@@ -95,14 +98,11 @@ GPIO.output(25, GPIO.LOW)
 def efecto_hall():
     valores = []
     rpm=0
-    for _ in range():
+    for _ in range(1000):
         valores.append(V_rpm.voltage)
-        time.sleep(1)   
+        time.sleep(0.06)   
     rpm = sum(valores)/len(valores)
-    print(f"Sensor efecto Hall \n Promedio:{rpm}V")
-    if rpm>4:
-        parada_motor()
-        print(f"Error motor, parada de emergencia")    
+    return rpm 
 
 
 def parada_motor():
@@ -159,16 +159,18 @@ def porcentaje_a_bits(porcentaje):
 def control_valvula(valor_deseado):
     return V_control_valvula.set_voltage(valor_deseado)
 
-
-
 j=0
 
 
-#Adquisición de datos
+class UMA_sensor:
+    
+    
+    def __init__(self):
+        # Initialize any necessary attributes here (if needed)
+        pass
 
-try:
-    while True:
-                
+    #Adquisición de datos
+    def get_uma():
         print('--------------Estado de maquina----------')
         
         now = datetime.datetime.now(pytz.timezone('America/Caracas'))
@@ -185,13 +187,18 @@ try:
         posicion_valvula, feedback_voltaje = f_valvula()
         
         #Lista de sensores temperaturas
-        temperature_lists=sensor_temperatura(device_folder)
+        current_temperatures=sensor_temperatura(device_folder)
 
+        on_uma=True
+        rpm=efecto_hall()
 
-        print("---Corriente en el motor---: \n ", corriente_motor, "A", V_corriente, "V \n --Presión:--- \n Suministro:", p_suministro, "psi", V_p_suministro,"V \n Retorno:",p_retorno,"psi", V_p_retorno,"V \n ---Válvula--- \n Posición:", posicion_valvula, "%", feedback_voltaje, "V \n ---Temperatura:--- \n T1",temperature_lists.get('1'), "°C \n T2",temperature_lists.get('2'), "°C \n T3",temperature_lists.get('3'),"°C \n T4",temperature_lists('4') "°C \n")
+        control_valvula=54
+        V_control_valvula=2.5
+
+        print("---Corriente en el motor---: \n ", corriente_motor, "A", V_corriente, "V \n --Presión:--- \n Suministro:", p_suministro, "psi", V_p_suministro,"V \n Retorno:",p_retorno,"psi", V_p_retorno,"V \n ---Válvula--- \n Posición:", posicion_valvula, "%", feedback_voltaje, "V \n ---Temperatura:--- \n T1",current_temperatures(1), "°C \n T2",current_temperatures(2), "°C \n T3",current_temperatures(3),"°C \n T4",current_temperatures(4), "°C \n Promedio efecto Hall:", rpm, "\n \n")
         # print("T1",temperature_lists[1], "T2",temperature_lists[1], "T3",temperature_lists[3],"T4",temperature_lists[4] )
         
-        
+        return {"tmp1": current_temperatures(1), "tmp2": current_temperatures(2), "tmp3": current_temperatures(3), "tmp4": current_temperatures(4), "pre_suministro": p_suministro, "pre_retorno": p_retorno, "c_motor": corriente_motor, "prom_efecto_hall": rpm, "encendido": on_uma, "p_input_valvula": posicion_valvula, "input_valvula": feedback_voltaje, "p_output_valvula": control_valvula, "output_valvula": V_control_valvula} 
         """"
         #Ajuste valvula
         if valores_temp_salida[j]>setpoint_temp:
@@ -203,12 +210,13 @@ try:
             
             V_control_valvula.set_voltage(4069)
             print(f"Posicion deseada valvula \n Voltaje:{control_valvula}V \n Apertura: {posicion_valvula}%")
+            
                 """
 
-        j=1+j
-        time.sleep(10)
+        #j=1+j
+        #time.sleep(10)
 
-except KeyboardInterrupt:
-    pass
-finally:
-    GPIO.cleanup()  # Clean up GP
+#except KeyboardInterrupt:
+#    pass
+#finally:
+#    GPIO.cleanup()  # Clean up GP
