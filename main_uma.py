@@ -3,7 +3,7 @@ from control import UMA_sensor
 
 
 uma_name='Piso 3'
-UMA_Db = UMA_Db(hostStr="localhost", dbPort=5432,
+UMA_Db = UMA_Db(hostStr="192.168.68.125", dbPort=5432,
                     dbStr="uma", uNameStr="postgres", dbPassStr="123456")
 
 data=UMA_sensor()

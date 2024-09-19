@@ -15,12 +15,21 @@ import Adafruit_MCP4725
 import adafruit_ads1x15.ads1115 as ADS
 from adafruit_ads1x15.analog_in import AnalogIn
 
+from UMA_Db import UMA_Db
+
+
+uma_name='Piso 3'
+UMA_Db = UMA_Db(hostStr="192.168.68.125", dbPort=5432,
+                    dbStr="uma", uNameStr="postgres", dbPassStr="123456")
+
 #Inicializar variables
 os.system('modprobe w1-gpio')
 os.system('modprobe w1-therm')
 
 base_dir = '/sys/bus/w1/devices/'
 device_folder = glob.glob(base_dir + '28*')
+
+
 
 #Codigo temperatura
 
@@ -48,7 +57,7 @@ def get_temperature(device_folder):
 def sensor_temperatura(device_folder):
     # Diccionario para guardar listas de temperatura
     # temperature_lists = {}
-    current_temperatures=()
+    current_temperatures=[]
 
 
 
@@ -161,16 +170,8 @@ def control_valvula(valor_deseado):
 
 j=0
 
-
-class UMA_sensor:
-    
-    
-    def __init__(self):
-        # Initialize any necessary attributes here (if needed)
-        pass
-
-    #Adquisición de datos
-    def get_uma():
+try:
+    while True:
         print('--------------Estado de maquina----------')
         
         now = datetime.datetime.now(pytz.timezone('America/Caracas'))
@@ -195,10 +196,13 @@ class UMA_sensor:
         control_valvula=54
         V_control_valvula=2.5
 
-        print("---Corriente en el motor---: \n ", corriente_motor, "A", V_corriente, "V \n --Presión:--- \n Suministro:", p_suministro, "psi", V_p_suministro,"V \n Retorno:",p_retorno,"psi", V_p_retorno,"V \n ---Válvula--- \n Posición:", posicion_valvula, "%", feedback_voltaje, "V \n ---Temperatura:--- \n T1",current_temperatures(1), "°C \n T2",current_temperatures(2), "°C \n T3",current_temperatures(3),"°C \n T4",current_temperatures(4), "°C \n Promedio efecto Hall:", rpm, "\n \n")
+        print("---Corriente en el motor---: \n ", corriente_motor, "A", V_corriente, "V \n --Presión:--- \n Suministro:", p_suministro, "psi", V_p_suministro,"V \n Retorno:",p_retorno,"psi", V_p_retorno,"V \n ---Válvula--- \n Posición:", posicion_valvula, "%", feedback_voltaje, "V \n ---Temperatura:--- \n T1",current_temperatures[0], "°C \n T2",current_temperatures[1], "°C \n T3",current_temperatures[2],"°C \n T4",current_temperatures[3], "°C \n Promedio efecto Hall:", rpm, "\n \n")
         # print("T1",temperature_lists[1], "T2",temperature_lists[1], "T3",temperature_lists[3],"T4",temperature_lists[4] )
         
-        return {"tmp1": current_temperatures(1), "tmp2": current_temperatures(2), "tmp3": current_temperatures(3), "tmp4": current_temperatures(4), "pre_suministro": p_suministro, "pre_retorno": p_retorno, "c_motor": corriente_motor, "prom_efecto_hall": rpm, "encendido": on_uma, "p_input_valvula": posicion_valvula, "input_valvula": feedback_voltaje, "p_output_valvula": control_valvula, "output_valvula": V_control_valvula} 
+        UMA_Dict= {"tmp1": current_temperatures[0], "tmp2": current_temperatures[1], "tmp3": current_temperatures[2], "tmp4": current_temperatures[3], "pre_suministro": p_suministro, "pre_retorno": p_retorno, "c_motor": corriente_motor, "prom_efecto_hall": rpm, "encendido": on_uma, "p_input_valvula": posicion_valvula, "input_valvula": feedback_voltaje, "p_output_valvula": control_valvula, "output_valvula": V_control_valvula} 
+        
+        #UMA_Db.insertData(uma_name, UMA_Dict["tmp1"], UMA_Dict["tmp2"], UMA_Dict["tmp3"], UMA_Dict["tmp4"], UMA_Dict["pre_suministro"], UMA_Dict["pre_retorno"], UMA_Dict["c_motor"], UMA_Dict["prom_efecto_hall"], UMA_Dict["encendido"], UMA_Dict["p_input_valvula"], UMA_Dict["input_valvula"], UMA_Dict["p_output_valvula"], UMA_Dict["output_valvula"])
+        
         """"
         #Ajuste valvula
         if valores_temp_salida[j]>setpoint_temp:
@@ -214,9 +218,8 @@ class UMA_sensor:
                 """
 
         #j=1+j
-        #time.sleep(10)
-
-#except KeyboardInterrupt:
-#    pass
-#finally:
-#    GPIO.cleanup()  # Clean up GP
+        time.sleep(60)
+except KeyboardInterrupt:
+    pass
+finally:
+    GPIO.cleanup()  # Clean up GP
