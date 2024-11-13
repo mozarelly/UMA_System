@@ -26,6 +26,9 @@ UMA_Db = UMA_Db(hostStr="192.168.68.125", dbPort=5432,
 from RPLCD.i2c import CharLCD
 lcd = CharLCD(i2c_expander='PCF8574', address=0x27, port=1, cols=20, rows=4, dotsize=8)
 
+#Lector humedad DHT22
+import adafruit_dht
+sensor = adafruit_dht.DHT22(board.D17)
 
 #Inicializar variables
 os.system('modprobe w1-gpio')
@@ -68,18 +71,20 @@ def sensor_temperatura(device_folder):
 # Temperatura deseada
 setpoint_temp = 16 # in degrees Celsius
 
+#
+
 #Modulos ADC
 i2c = busio.I2C(board.SCL, board.SDA)
 
 #ADS1115 1
-ads1 = ADS.ADS1115(i2c, address=0x49)
+ads1 = ADS.ADS1115(i2c, address=0x48)
 
 ads1.gain = 1
 V_posicion_valvula = AnalogIn(ads1, ADS.P0)
 V_rpm = AnalogIn(ads1, ADS.P1)
 
 #ADS1115 2
-ads2 = ADS.ADS1115(i2c, address=0x48)
+ads2 = ADS.ADS1115(i2c, address=0x49)
 
 ads2.gain = 1
 V_corriente_motor = AnalogIn(ads2, ADS.P0)
@@ -192,17 +197,19 @@ def control_valvula(valor_deseado):
 
 def lcd_print(valor_a, valor_b, valor_c, valor_d):
     lcd.clear()
-    lcd.setCursor(0, 0)
+    lcd.cursor_pos=(0, 0)
     lcd.write_string(valor_a)
-    lcd.setCursor(0, 1)
+    lcd.cursor_pos=(1, 0)
     lcd.write_string(valor_b)
-    lcd.setCursor(0, 2)
+    lcd.cursor_pos=(2, 0)
     lcd.write_string(valor_c)
-    lcd.setCursor(0, 3)
+    lcd.cursor_pos=(3, 0)
     lcd.write_string(valor_d)
+    
+    time.sleep(5)
 
 def on_uma(corriente, rpm):
-    if corriente>0 and rpm True:
+    if corriente>0 and rpm==True:
         return 'Encendido'
     else:
         return 'Apagado'
@@ -217,55 +224,41 @@ try:
         lcd_print('Estado de maquina', 'UMA Piso 3-Oeste',str(tiempo_formato),'')
         
         #Corriente motor
-        corriente_motor, V_corriente=corriente()                
+        corriente_motor, V_corriente=corriente()       
         #Presion
         p_suministro, V_p_suministro, p_retorno, V_p_retorno=presion()
         #Posicion valvula
         posicion_valvula, feedback_voltaje = f_valvula()
         #Lista de sensores temperaturas
         list_temperatura=sensor_temperatura(device_folder)
+        list_temperatura.append(2.5)
+        #Humedad
+        #humedad = sensor.humidity
+        humedad=0
         #Giro de motor
         rpm=efecto_hall()
 
         estado=on_uma(corriente_motor, rpm)
 
-        lcd_print('Motor UMA', estado ,'Corriente: ',(str(corriente_motor)))
+        lcd_print('Motor UMA',estado, 'Corriente: '+(str(corriente_motor)+'A'),'')
+        lcd_print('Presión',('Suministro:'+ str(p_suministro)+ 'psi'),('Retorno:'+str(p_retorno)+'psi'),'')
+        lcd_print('Temperatura agua',('Suministro:'+ str(list_temperatura[0])+'C'),('Retorno:'+str(list_temperatura[1])+'C'),'')
+        lcd_print('Temperatura aire',('Suministro:'+ str(list_temperatura[2])+'C'),('Retorno:'+str(list_temperatura[3])+'C'),('Humedad:'+str(humedad)+'%'))
 
-        lcd_print('Presión',('Suministro:', str(p_suministro), psi),('Retorno:', str(p_retorno), psi),'')
-
-        lcd_print('Temperatura agua',('Suministro:', str(list_temperatura[0]), C),('Retorno:', str(list_temperatura[1]), C),'')
-
-        lcd_print('Temperatura aire',('Suministro:', str(list_temperatura[2]), C),('Retorno:', str(list_temperatura[3]), C),('Humedad:', str(humedad), %))
-
-
-        control_valvula=54
-        V_control_valvula=2.5
-
-        print("---Corriente en el motor---: \n ", corriente_motor, "A", V_corriente, "V \n --Presión:--- \n Suministro:", p_suministro, "psi", V_p_suministro,"V \n Retorno:",p_retorno,"psi", V_p_retorno,"V \n ---Válvula--- \n Posición:", posicion_valvula, "%", feedback_voltaje, "V \n ---Temperatura:--- \n T1",list_temperatura[0], "°C \n T2",list_temperatura[1], "°C \n T3",list_temperatura[2],"°C \n T4",list_temperatura[3], "°C \n Promedio efecto Hall:", rpm, "\n \n")
+        control_valvula, PID_error, Error_INT=PID()
+        #print("---Corriente en el motor---: \n ", corriente_motor, "A", V_corriente, "V \n --Presión:--- \n Suministro:", p_suministro, "psi", V_p_suministro,"V \n Retorno:",p_retorno,"psi", V_p_retorno,"V \n ---Válvula--- \n Posición:", posicion_valvula, "%", feedback_voltaje, "V \n ---Temperatura:--- \n T1",list_temperatura[0], "°C \n T2",list_temperatura[1], "°C \n T3",list_temperatura[2],"°C \n T4",list_temperatura[2], "°C \n Promedio efecto Hall:", rpm, "\n Humedad:",humedad,"% \n \n")
         # print("T1",temperature_lists[1], "T2",temperature_lists[1], "T3",temperature_lists[3],"T4",temperature_lists[4] )
         
-        UMA_Dict= {"tmp1": list_temperatura[0], "tmp2": list_temperatura[1], "tmp3": list_temperatura[2], "tmp4": list_temperatura[3], "pre_suministro": p_suministro, "pre_retorno": p_retorno, "c_motor": corriente_motor, "prom_efecto_hall": rpm, "encendido": on_uma, "p_input_valvula": posicion_valvula, "input_valvula": feedback_voltaje, "p_output_valvula": control_valvula, "output_valvula": V_control_valvula} 
+        UMA_Dict= {"tmp1": list_temperatura[0], "tmp2": list_temperatura[1], "tmp3": list_temperatura[2], "tmp4": list_temperatura[3], "hum": humedad, "pre_suministro": p_suministro, "pre_retorno": p_retorno, "c_motor": corriente_motor, "prom_efecto_hall": rpm, "encendido": on_uma, "p_input_valvula": posicion_valvula, "input_valvula": feedback_voltaje, "p_output_valvula": control_valvula, "output_valvula": V_control_valvula} 
         
-        #UMA_Db.insertData(uma_name, UMA_Dict["tmp1"], UMA_Dict["tmp2"], UMA_Dict["tmp3"], UMA_Dict["tmp4"], UMA_Dict["pre_suministro"], UMA_Dict["pre_retorno"], UMA_Dict["c_motor"], UMA_Dict["prom_efecto_hall"], UMA_Dict["encendido"], UMA_Dict["p_input_valvula"], UMA_Dict["input_valvula"], UMA_Dict["p_output_valvula"], UMA_Dict["output_valvula"])
-        
-        resultado, PID_error, Error_INT=PID()
-
-        """"
-        #Ajuste valvula
-        if valores_temp_salida[j]>setpoint_temp:
-            #x=my+b
-            print(f"Nada")
-        else:
-            #x=my+b
-            control_valvula=-0.0499*posicion_valvula+4.99
-            
-            V_control_valvula.set_voltage(4069)
-            print(f"Posicion deseada valvula \n Voltaje:{control_valvula}V \n Apertura: {posicion_valvula}%")
-            
-                """
+        UMA_Db.insertData(uma_name, UMA_Dict["tmp1"], UMA_Dict["tmp2"], UMA_Dict["tmp3"], UMA_Dict["tmp4"], UMA_Dict["pre_suministro"], UMA_Dict["pre_retorno"], UMA_Dict["c_motor"], UMA_Dict["prom_efecto_hall"], UMA_Dict["encendido"], UMA_Dict["p_input_valvula"], UMA_Dict["input_valvula"], UMA_Dict["p_output_valvula"], UMA_Dict["output_valvula"])
 
         #j=1+j
-        time.sleep(60)
+        time.sleep(10)
+except RuntimeError as error:
+        print(error.args[0])
+        time.sleep(1.0)
+        #continue
 except KeyboardInterrupt:
     pass
 finally:
