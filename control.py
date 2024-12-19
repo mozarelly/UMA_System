@@ -109,14 +109,14 @@ PID_error = 0
 PID_value = 0
 Error_INT = 0
 
-def PID():
+def PID(tiempo_loop):
     global PID_error, Error_INT
     setpoint = 16
     Kc=-4.393
     Ki=-0.2645
     Tao_I = Kc/Ki
 
-    Read_Delay = 300  # // Periodo de muestreo en segundos
+    Read_Delay = tiempo_loop  #Periodo de muestreo en segundos
 
     PID_error = setpoint-Temperatura                   #Calculo del error    
     Error_INT = Error_INT + PID_error*(5/Read_Delay)   #Calculo de la integral del error
@@ -151,25 +151,25 @@ def corriente():
     #Corriente motor
     V_corriente=round(V_p_input.voltage,2)
     corriente_motor=round(V_corriente*30.0,2)
-
+    
     return corriente_motor, V_corriente
     
 
 def presion():
     # y=mx+b
-
-    m_p=38.67
-    b_p=0
+    m_pi=38.67
+    b_pi=0
     
     #Suministro
     V_p_suministro=round(V_p_input.voltage,2)
-    p_suministro=round(m_p*V_p_suministro+b_p,2)
+    p_suministro=round(m_pi*V_p_suministro+b_pi,2)
     #print(f"Presion suministro agua \n Voltaje:{V_p_input.voltage}V \n Presion: {p_input}psi")
 
-
+    m_po=38.67
+    b_po=0
     V_p_retorno=round(V_p_output.voltage,2)
-    p_retorno=round(m_p*V_p_retorno+b_p,2)
-    #print(f"Presion retorno agua \n Voltaje:{V_p_output.voltage}V \n Presion: {p_output}psi")
+    p_retorno=round(m_po*V_p_retorno+b_po,2)
+    #prqint(f"Presion retorno agua \n Voltaje:{V_p_output.voltage}V \n Presion: {p_output}psi")
 
     return p_suministro, V_p_suministro, p_retorno, V_p_retorno
 
@@ -205,7 +205,6 @@ def lcd_print(valor_a, valor_b, valor_c, valor_d):
     lcd.write_string(valor_c)
     lcd.cursor_pos=(3, 0)
     lcd.write_string(valor_d)
-    
     time.sleep(5)
 
 def on_uma(corriente, rpm):
@@ -218,6 +217,7 @@ j=0
 
 try:
     while True:
+        inicio = time.time()
         tiempo = datetime.datetime.now(pytz.timezone('America/Caracas'))
         tiempo_formato = tiempo.strftime("%d/%m/%y %H:%M")
 
@@ -231,7 +231,6 @@ try:
         posicion_valvula, feedback_voltaje = f_valvula()
         #Lista de sensores temperaturas
         list_temperatura=sensor_temperatura(device_folder)
-        list_temperatura.append(2.5)
         #Humedad
         #humedad = sensor.humidity
         humedad=0
@@ -240,21 +239,25 @@ try:
 
         estado=on_uma(corriente_motor, rpm)
 
-        lcd_print('Motor UMA',estado, 'Corriente: '+(str(corriente_motor)+'A'),'')
+        lcd_print('Motor UMA', estado, 'Corriente: '+(str(corriente_motor)+'A'),'')
         lcd_print('Presión',('Suministro:'+ str(p_suministro)+ 'psi'),('Retorno:'+str(p_retorno)+'psi'),'')
         lcd_print('Temperatura agua',('Suministro:'+ str(list_temperatura[0])+'C'),('Retorno:'+str(list_temperatura[1])+'C'),'')
         lcd_print('Temperatura aire',('Suministro:'+ str(list_temperatura[2])+'C'),('Retorno:'+str(list_temperatura[3])+'C'),('Humedad:'+str(humedad)+'%'))
 
-        control_valvula, PID_error, Error_INT=PID()
         #print("---Corriente en el motor---: \n ", corriente_motor, "A", V_corriente, "V \n --Presión:--- \n Suministro:", p_suministro, "psi", V_p_suministro,"V \n Retorno:",p_retorno,"psi", V_p_retorno,"V \n ---Válvula--- \n Posición:", posicion_valvula, "%", feedback_voltaje, "V \n ---Temperatura:--- \n T1",list_temperatura[0], "°C \n T2",list_temperatura[1], "°C \n T3",list_temperatura[2],"°C \n T4",list_temperatura[2], "°C \n Promedio efecto Hall:", rpm, "\n Humedad:",humedad,"% \n \n")
         # print("T1",temperature_lists[1], "T2",temperature_lists[1], "T3",temperature_lists[3],"T4",temperature_lists[4] )
         
         UMA_Dict= {"tmp1": list_temperatura[0], "tmp2": list_temperatura[1], "tmp3": list_temperatura[2], "tmp4": list_temperatura[3], "hum": humedad, "pre_suministro": p_suministro, "pre_retorno": p_retorno, "c_motor": corriente_motor, "prom_efecto_hall": rpm, "encendido": on_uma, "p_input_valvula": posicion_valvula, "input_valvula": feedback_voltaje, "p_output_valvula": control_valvula, "output_valvula": V_control_valvula} 
         
-        UMA_Db.insertData(uma_name, UMA_Dict["tmp1"], UMA_Dict["tmp2"], UMA_Dict["tmp3"], UMA_Dict["tmp4"], UMA_Dict["pre_suministro"], UMA_Dict["pre_retorno"], UMA_Dict["c_motor"], UMA_Dict["prom_efecto_hall"], UMA_Dict["encendido"], UMA_Dict["p_input_valvula"], UMA_Dict["input_valvula"], UMA_Dict["p_output_valvula"], UMA_Dict["output_valvula"])
-
-        #j=1+j
-        time.sleep(10)
+        UMA_Db.insertData(uma_name, UMA_Dict["tmp1"], UMA_Dict["tmp2"], UMA_Dict["tmp3"], UMA_Dict["tmp4"], UMA_Dict["hum"], UMA_Dict["pre_suministro"], UMA_Dict["pre_retorno"], UMA_Dict["c_motor"], UMA_Dict["prom_efecto_hall"], UMA_Dict["encendido"], UMA_Dict["p_input_valvula"], UMA_Dict["input_valvula"], UMA_Dict["p_output_valvula"], UMA_Dict["output_valvula"])
+        
+        fin = time.time()
+        #Tiempo transcurrido en el loop
+        ts=(fin-inicio)
+        control_valvula, PID_error, Error_INT=PID(ts)
+        print(f"Control: {control_valvula}, Error PID: {PID_error}, Error Integral: {Error_INT}")
+        print(f"Tiempo transcurrido: {ts:.01f} segs")
+        
 except RuntimeError as error:
         print(error.args[0])
         time.sleep(1.0)
