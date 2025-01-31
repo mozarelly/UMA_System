@@ -1,1 +1,39 @@
-Esta es una prueba, borra para practicar el commit uando termine
+{   
+    "PaymentModeID": "2",
+    "DeliveryType": "10",
+    "BUCodeSource": "1127",
+    "BUCodeConsignee": "1128",
+    "DeclaratedValue": 55,
+    "ShipperIdentificationType": "001",
+    "ShipperIdentification": "24211328",
+    "ShipperName": "Edwar Yepez",
+    "ConsigneeIdentificationType": "001",
+    "ConsigneeIdentification": "15976398",
+    "ConsigneeName": "Alfredo Chelminski",
+    "ShipperAddress": "Av. 4 Los Palos Grandes. Edif. Los Médanos",
+    "ConsigneeAddressType": "10",
+    "ConsigneeAddress": "Av. Este 3. La Candelaria. Residencias Kamarata.",
+    "ShipperPhone": "584129354197",
+    "ConsigneePhone": "584244590232",
+    "ShipperEmail": "edwar.yepez@tealca.com",
+    "ConsigneeEmail": "alfredo.chelminski@tealca.com",
+    "IsSafeKeeping": true,
+    "IsDelivery": false,
+    "UserLogin": "edwar.yepez",
+    "Observations": "Alguna observación",
+    "ShipperLatitude": 10.498802,
+    "ShipperLongitude": -66.842676,
+    "ConsigneeLatitude": 10.507008,
+    "ConsigneeLongitude": -66.903251,
+    "ShipmentDetail": [
+        {
+            "PieceNumber": 1,
+            "Height": 10,
+            "Width": 10,
+            "Lenght": 10,
+            "PhysicalWeight": 10,
+            "DeclaratedValue": 55,
+            "ProductCode": "010"
+        }
+    ]
+}
