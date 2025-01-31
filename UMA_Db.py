@@ -9,7 +9,7 @@ class UMA_Db:
         self.dbPassStr = dbPassStr
 
 
-    def insertData(self, uma, tmp1, tmp2, tmp3, tmp4, pre_suministro, pre_retorno, c_motor, prom_efecto_hall, encendido, p_input_valvula, input_valvula, p_output_valvula, output_valvula):
+    def insertData(self, uma, tmp1, tmp2, tmp3, tmp4, hum, pre_suministro, pre_retorno, c_motor, prom_efecto_hall, encendido, p_input_valvula, input_valvula, p_output_valvula, output_valvula):
         try:
             conn = psycopg2.connect(host=self.hostStr, port=self.dbPort,
                                     dbname=self.dbStr, user=self.uNameStr, password=self.dbPassStr)
@@ -18,16 +18,16 @@ class UMA_Db:
             cur = conn.cursor()
 
             # prepare data insertion rows
-            dataInsertionTuples = [(uma, tmp1, tmp2, tmp3, tmp4, pre_suministro, pre_retorno, c_motor, prom_efecto_hall, encendido, p_input_valvula, input_valvula, p_output_valvula, output_valvula)]
+            dataInsertionTuples = [(uma, tmp1, tmp2, tmp3, tmp4, hum, pre_suministro, pre_retorno, c_motor, prom_efecto_hall, encendido, p_input_valvula, input_valvula, p_output_valvula, output_valvula)]
 
             # create sql command for rows insertion
-            dataText = ','.join(cur.mogrify('(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)', row).decode(
+            dataText = ','.join(cur.mogrify('(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)', row).decode(
                 "utf-8") for row in dataInsertionTuples)
 
             sqlTxt = 'INSERT INTO public.uma_data\
-                    (uma, tmp1, tmp2, tmp3, tmp4, pre_suministro, pre_retorno, c_motor, prom_efecto_hall, encendido, p_input_valvula, input_valvula, p_output_valvula, output_valvula)\
+                    (uma, tmp1, tmp2, tmp3, tmp4, hum, pre_suministro, pre_retorno, c_motor, prom_efecto_hall, encendido, p_input_valvula, input_valvula, p_output_valvula, output_valvula)\
                     VALUES {0} on conflict (uma, data_time) \
-                do update set tmp1 = excluded.tmp1,	tmp2 = excluded.tmp2, tmp3 = excluded.tmp3, tmp4 = excluded.tmp4, pre_suministro = excluded.pre_suministro, pre_retorno = excluded.pre_retorno, c_motor = excluded.c_motor, prom_efecto_hall = excluded.prom_efecto_hall, encendido = excluded.encendido, p_input_valvula = excluded.p_input_valvula, input_valvula = excluded.input_valvula, p_output_valvula = excluded.p_output_valvula, output_valvula = excluded.output_valvula'.format(dataText)
+                do update set tmp1 = excluded.tmp1,	tmp2 = excluded.tmp2, tmp3 = excluded.tmp3, tmp4 = excluded.tmp4, hum = excluded.hum, pre_suministro = excluded.pre_suministro, pre_retorno = excluded.pre_retorno, c_motor = excluded.c_motor, prom_efecto_hall = excluded.prom_efecto_hall, encendido = excluded.encendido, p_input_valvula = excluded.p_input_valvula, input_valvula = excluded.input_valvula, p_output_valvula = excluded.p_output_valvula, output_valvula = excluded.output_valvula'.format(dataText)
 
             # execute the sql to perform insertion
             cur.execute(sqlTxt)
